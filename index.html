@@ -1,215 +1,160 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>OMR 테스트 (JSONP 폴백)</title>
-<style>
-  body{font-family:Georgia,serif;background:#f5f5f5;margin:0;padding:24px;display:flex;justify-content:center}
-  .container{max-width:920px;width:100%;background:#fff;padding:28px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.12)}
-  h1{text-align:center;color:#1e3a8a;margin:0 0 18px 0;font-weight:normal}
-  .controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
-  select,input[type="text"]{padding:8px 10px;border-radius:6px;border:1px solid #cfd6df;font-size:14px}
-  #omrForm{display:flex;flex-direction:column;gap:10px;margin-top:8px}
-  .question{display:flex;align-items:center;gap:16px;padding:8px 6px;border-bottom:1px dashed #eee}
-  .qnum{width:40px;text-align:right;font-weight:bold;color:#333}
-  .options{display:flex;gap:10px;align-items:center}
-  .option{width:36px;height:50px;border:2px solid #bfbfbf;border-radius:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-weight:bold;font-size:16px;background:#fff;transition:all .15s}
-  .option input{display:none}
-  .option.checked{background:#1e40af;color:#fff;border-color:#1e40af;box-shadow:0 2px 6px rgba(30,64,175,.18)}
-  .actions{text-align:center;margin-top:16px;display:flex;justify-content:center;gap:12px}
-  button{padding:10px 18px;border-radius:8px;border:none;cursor:pointer;font-weight:bold;background:#1e40af;color:#fff}
-  button.secondary{background:#047857}
-  #result{text-align:center;margin-top:14px;font-size:18px;font-weight:bold;color:#065f46}
-  .status{margin-top:8px;font-size:13px;color:#666;text-align:center}
-  .status.success{color:#0b7a4f}
-  .status.fail{color:#b91c1c}
-  pre.debug{white-space:pre-wrap;background:#f8fafc;border:1px solid #e6eef8;padding:10px;border-radius:6px;margin-top:12px;font-size:12px}
-</style>
+  <meta charset="UTF-8">
+  <title>OMR 채점 페이지</title>
+  <style>
+    body { font-family: "Times New Roman", serif; text-align: center; }
+    .container { max-width: 800px; margin: auto; }
+    .form-section { margin: 20px 0; }
+    .question { margin: 15px 0; }
+    .options { display: flex; justify-content: space-around; margin-top: 10px; }
+    .option {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 60px; height: 30px;
+      border: 2px solid black;
+      border-radius: 50px; /* 타원 모양 */
+      cursor: pointer;
+    }
+    input[type="radio"] { display: none; }
+    input[type="radio"]:checked + label {
+      background-color: black;
+      color: white;
+    }
+    button {
+      margin: 15px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #333;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #result { margin-top: 20px; font-weight: bold; font-size: 18px; }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>OMR 테스트</h1>
+    <h2>OMR 채점 시스템</h2>
 
-    <div class="controls">
-      <div><label>학년</label><select id="grade"><option>중1</option><option>중2</option><option>중3</option><option>고1</option><option>고2</option><option>고3</option></select></div>
-      <div><label>반</label><select id="Class"><option>A</option><option>B</option><option>C</option></select></div>
-      <div><label>학생 ID</label><input id="studentId" type="text" placeholder="학생 ID 입력" /></div>
+    <!-- 학년 선택 -->
+    <div class="form-section">
+      <label for="grade">학년 선택:</label>
+      <select id="grade">
+        <option value="중1">중1</option>
+        <option value="중2">중2</option>
+        <option value="중3">중3</option>
+        <option value="고1">고1</option>
+        <option value="고2">고2</option>
+        <option value="고3">고3</option>
+      </select>
     </div>
 
-    <div id="omrForm"></div>
-
-    <div class="actions">
-      <button id="gradeBtn">채점</button>
-      <button id="reloadAnswers" class="secondary">정답 다시 불러오기</button>
+    <!-- 시험지 종류 선택 -->
+    <div class="form-section">
+      <label for="exam">시험지 종류:</label>
+      <select id="exam">
+        <option value="A">A형</option>
+        <option value="B">B형</option>
+        <option value="C">C형</option>
+      </select>
     </div>
+
+    <!-- 문제 표시 (예시 5문제) -->
+    <form id="omrForm">
+      <div id="questions"></div>
+      <button type="button" onclick="submitAndGrade()">채점하기</button>
+      <button type="button" onclick="fetchAnswers()">정답 다시 불러오기</button>
+    </form>
 
     <div id="result"></div>
-    <div id="answerStatus" class="status"></div>
-
-    <h3 style="margin-top:18px">디버그 로그 (개발용)</h3>
-    <pre id="debugLog" class="debug">콘솔 로그가 여기에 출력됩니다.</pre>
   </div>
 
-<script>
-const TOTAL_QUESTIONS = 15;
-const WEBAPP_URL = '<https://script.google.com/macros/s/AKfycby-mybSTj7Ay6675T8IHPrVX0Vr4bU_DzBvvv_ze0dy2zz5foX_sShBqwrjnQbcYLTJ/exec>'; // ← 여기에 Apps Script Web app URL 붙여넣기
-let correctAnswers = {};
-let lastFetchFor = {grade:'', cls:''};
+  <script>
+    const scriptUrl = "https://script.google.com/macros/s/AKfycby-mybSTj7Ay6675T8IHPrVX0Vr4bU_DzBvvv_ze0dy2zz5foX_sShBqwrjnQbcYLTJ/exec"; // Google Apps Script Web App URL
+    let answerKey = {};
 
-function logDebug(msg){
-  console.log(msg);
-  const el = document.getElementById('debugLog');
-  el.textContent = (el.textContent ? el.textContent + '\n' : '') + msg;
-  // Keep log reasonably sized
-  if(el.textContent.length > 20000) el.textContent = el.textContent.slice(-20000);
-}
-
-function buildForm(){
-  const omrForm = document.getElementById('omrForm');
-  omrForm.innerHTML = '';
-  for(let i=1;i<=TOTAL_QUESTIONS;i++){
-    const q = document.createElement('div'); q.className='question';
-    q.innerHTML = `<div class="qnum">${i}</div><div class="options" data-q="${i}"></div>`;
-    const options = q.querySelector('.options');
-    for(let j=1;j<=5;j++){
-      const lbl = document.createElement('label'); lbl.className='option';
-      lbl.innerHTML = `<input type="radio" name="q${i}" value="${j}">${j}`;
-      lbl.querySelector('input').addEventListener('change', function(){
-        options.querySelectorAll('.option').forEach(o=>o.classList.remove('checked'));
-        lbl.classList.add('checked');
-      });
-      options.appendChild(lbl);
-    }
-    omrForm.appendChild(q);
-  }
-}
-
-function setStatus(msg, type){
-  const el = document.getElementById('answerStatus');
-  el.textContent = msg;
-  el.className = 'status' + (type ? ' ' + type : '');
-  logDebug('[STATUS] ' + msg);
-}
-
-/* === fetch GET 시도 -> 실패 시 JSONP 폴백 === */
-async function fetchAnswers(){
-  const grade = document.getElementById('grade').value;
-  const cls = document.getElementById('classInput').value.trim();
-  const url = `${WEBAPP_URL}?grade=${encodeURIComponent(grade)}&cls=${encodeURIComponent(cls)}`;
-  logDebug('fetchAnswers() -> URL: ' + url);
-
-  // 캐시 체크
-  if(lastFetchFor.grade===grade && lastFetchFor.cls===cls && Object.keys(correctAnswers).length){
-    setStatus('정답: 캐시 사용됨', 'success');
-    return;
-  }
-
-  setStatus('정답 불러오는 중...', '');
-  // 1) 표준 fetch 시도
-  try {
-    const res = await fetch(url);
-    logDebug('fetch status: ' + res.status + ' ' + res.statusText);
-    const text = await res.text();
-    logDebug('fetch raw response: ' + text);
-    let data;
-    try { data = JSON.parse(text); } catch(e) { throw new Error('서버 응답 JSON 파싱 실패'); }
-    if(data && data.error) throw new Error('서버 error: ' + data.error);
-    correctAnswers = data || {};
-    lastFetchFor = {grade, cls};
-    setStatus('정답 불러오기 성공 (fetch)', 'success');
-    return;
-  } catch (err) {
-    logDebug('fetch failed: ' + String(err));
-    // 2) JSONP 폴백 시도
-    setStatus('fetch 실패 — JSONP 폴백 시도', 'fail');
-    return new Promise((resolve, reject) => {
-      const cbName = 'jsonp_cb_' + Date.now();
-      window[cbName] = function(data){
-        delete window[cbName];
-        script.remove();
-        logDebug('JSONP callback received: ' + JSON.stringify(data));
-        if(data && data.error){
-          setStatus('정답 불러오기 실패 — 서버 오류', 'fail');
-          reject(data);
-        } else {
-          correctAnswers = data || {};
-          lastFetchFor = {grade, cls};
-          setStatus('정답 불러오기 성공 (jsonp)', 'success');
-          resolve(data);
+    // 문제 생성 (예시: 5문제)
+    function renderQuestions() {
+      const qDiv = document.getElementById("questions");
+      qDiv.innerHTML = "";
+      for (let i = 1; i <= 5; i++) {
+        let qHtml = `<div class="question">
+          <div>문제 ${i}</div>
+          <div class="options">`;
+        for (let j = 1; j <= 5; j++) {
+          qHtml += `
+            <input type="radio" name="q${i}" id="q${i}_${j}" value="${j}">
+            <label class="option" for="q${i}_${j}">${j}</label>
+          `;
         }
-      };
-      const script = document.createElement('script');
-      script.src = `${url}&callback=${cbName}`;
-      script.onerror = function(e){
-        delete window[cbName];
-        script.remove();
-        logDebug('JSONP load error: ' + e);
-        setStatus('정답 불러오기 실패 — JSONP 로드 실패', 'fail');
-        reject(e);
-      };
-      document.head.appendChild(script);
-    });
-  }
-}
-
-/* === 채점 및 기록 === */
-async function submitAndGrade(){
-  const studentId = document.getElementById('studentId').value.trim();
-  const grade = document.getElementById('grade').value;
-  const cls = document.getElementById('classInput').value.trim();
-
-  if(!studentId){ alert('학생 ID를 입력해주세요'); return; }
-  if(!cls && !confirm('반이 비어있습니다. 계속 진행할까요?')) return;
-
-  await fetchAnswers();
-
-  let score = 0, details = '';
-  for(let i=1;i<=TOTAL_QUESTIONS;i++){
-    const sel = document.querySelector(`input[name="q${i}"]:checked`);
-    const val = sel ? sel.value : '-';
-    const key = 'q' + i;
-    if(correctAnswers[key] && String(correctAnswers[key]) === String(val)) score++;
-    details += `Q${i}:${val} `;
-  }
-
-  document.getElementById('result').innerText = `${studentId} 님 점수: ${score} / ${TOTAL_QUESTIONS}`;
-  logDebug('채점 결과 -> ' + studentId + ' score=' + score);
-
-  // POST 기록 (헤더 없이 보내서 preflight 최소화)
-  const time = new Date().toLocaleString();
-  const payload = { grade, cls, studentId, score, time, details };
-  try {
-    const res = await fetch(WEBAPP_URL, { method: 'POST', body: JSON.stringify(payload) });
-    const text = await res.text();
-    logDebug('POST status: ' + res.status + ' ' + res.statusText);
-    logDebug('POST raw response: ' + text);
-    try {
-      const data = JSON.parse(text);
-      if(data && data.status === 'success') {
-        logDebug('기록 성공');
-        setStatus('점수 표시 및 기록 전송 완료', 'success');
-      } else {
-        logDebug('기록 응답(비정상): ' + text);
-        setStatus('기록 전송 후 서버 응답 이상(콘솔 확인)', 'fail');
+        qHtml += `</div></div>`;
+        qDiv.innerHTML += qHtml;
       }
-    } catch(e) {
-      logDebug('POST 응답 JSON 파싱 실패: ' + e);
-      setStatus('기록 전송(응답 파싱 실패)', 'fail');
     }
-  } catch (err) {
-    logDebug('POST 실패: ' + err);
-    setStatus('구글 시트 기록 실패 — 네트워크/웹앱 설정 확인', 'fail');
-  }
-}
 
-/* 초기화 */
-document.addEventListener('DOMContentLoaded', () => {
-  buildForm();
-  fetchAnswers(); // 시도해봄
-  document.getElementById('gradeBtn').addEventListener('click', submitAndGrade);
-  document.getElementById('reloadAnswers').addEventListener('click', () => { lastFetchFor = {grade:'', cls:''}; fetchAnswers(); });
-});
-</script>
+    // 정답 불러오기
+    async function fetchAnswers() {
+      const grade = document.getElementById("grade").value;
+      const exam = document.getElementById("exam").value;
+
+      try {
+        const res = await fetch(`${scriptUrl}?action=getAnswers&grade=${grade}&exam=${exam}`);
+        const data = await res.json();
+        if (data.success) {
+          answerKey = data.answers;
+          alert("정답 불러오기 완료!");
+          console.log("불러온 정답:", answerKey);
+        } else {
+          alert("정답 불러오기 실패 — 관리자에게 확인하세요.");
+        }
+      } catch (err) {
+        console.error("fetchAnswers error:", err);
+        alert("정답 불러오기 중 오류 발생");
+      }
+    }
+
+    // 채점
+    async function submitAndGrade() {
+      const grade = document.getElementById("grade").value;
+      const exam = document.getElementById("exam").value;
+
+      let score = 0;
+      let total = Object.keys(answerKey).length;
+
+      for (let i = 1; i <= total; i++) {
+        let selected = document.querySelector(`input[name="q${i}"]:checked`);
+        if (selected && answerKey[`q${i}`] == selected.value) {
+          score++;
+        }
+      }
+
+      document.getElementById("result").innerText =
+        `점수: ${score} / ${total}`;
+
+      try {
+        await fetch(scriptUrl, {
+          method: "POST",
+          body: new URLSearchParams({
+            action: "saveResult",
+            grade: grade,
+            exam: exam,
+            score: score,
+            total: total
+          })
+        });
+      } catch (err) {
+        console.error("submitAndGrade error:", err);
+      }
+    }
+
+    // 초기 렌더링
+    document.addEventListener("DOMContentLoaded", () => {
+      renderQuestions();
+    });
+  </script>
 </body>
 </html>
