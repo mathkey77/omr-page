@@ -1,231 +1,147 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>OMR 테스트 (학생 ID 포함)</title>
+<title>곽인영T - OMR 제출</title>
 <style>
-  /* 기존 OMR 스타일 유지 (클래식 폰트 + 타원형 보기) */
-  body { font-family: Georgia, "Times New Roman", serif; background:#f5f5f5; margin:0; padding:24px; display:flex; justify-content:center; }
-  .container { max-width:920px; width:100%; background:#fff; padding:28px; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.12); }
-  h1 { text-align:center; color:#1e3a8a; margin:0 0 18px 0; font-weight:normal; }
-  .controls { display:flex; gap:12px; align-items:center; justify-content:center; margin-bottom:16px; flex-wrap:wrap; }
-  .control-item { display:flex; flex-direction:column; align-items:flex-start; font-size:14px; color:#333; }
-  select, input[type="text"] { padding:8px 10px; border-radius:6px; border:1px solid #cfd6df; font-size:14px; min-width:120px; }
-  #omrForm { display:flex; flex-direction:column; gap:10px; margin-top:8px; }
-  .question { display:flex; align-items:center; gap:16px; padding:8px 6px; border-bottom:1px dashed #eee; }
-  .qnum { width:40px; text-align:right; font-weight:bold; color:#333; }
-  .options { display:flex; gap:12px; align-items:center; }
-
-  /* 타원형 보기 (세로로 긴) */
-  .option {
-    width:36px; height:50px; border:2px solid #bfbfbf; border-radius:18px;
-    display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none;
-    font-weight:bold; font-size:16px; background:#fff; transition:all .15s;
-  }
-  .option input { display:none; }
-  .option.checked { background:#1e40af; color:#fff; border-color:#1e40af; box-shadow:0 2px 6px rgba(30,64,175,.18); }
-
-  .actions { text-align:center; margin-top:16px; display:flex; justify-content:center; gap:12px; }
-  button { padding:10px 18px; border-radius:8px; border:none; cursor:pointer; font-weight:bold; background:#1e40af; color:#fff; }
-  button.secondary { background:#047857; }
-
-  #result { text-align:center; margin-top:14px; font-size:18px; font-weight:bold; color:#065f46; }
-  .status { text-align:center; margin-top:8px; font-size:13px; color:#666; }
-  .status.success { color:#0b7a4f; }
-  .status.fail { color:#b91c1c; }
-
-  pre.debug { white-space:pre-wrap; background:#f8fafc; border:1px solid #e6eef8; padding:10px; border-radius:6px; margin-top:12px; font-size:12px; max-height:240px; overflow:auto; }
-  @media (max-width:560px){ .question{gap:10px;} .options{gap:8px;} .controls{flex-direction:column; align-items:stretch;} }
+  body{font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;margin:0;padding:0;background:#f6f7fb;color:#111}
+  .wrap{max-width:720px;margin:0 auto;padding:18px}
+  header{padding:10px 0;text-align:center}
+  h1{margin:6px 0;font-size:20px}
+  .card{background:white;border-radius:10px;padding:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:12px}
+  label{display:block;margin-bottom:8px;font-weight:600}
+  .row{display:flex;gap:8px}
+  select,input[type=text]{flex:1;padding:10px;border-radius:8px;border:1px solid #ddd}
+  .question{margin:10px 0;padding:10px;border-radius:8px;border:1px solid #eee}
+  .opts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .opt{flex:1;min-width:48px;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:8px;text-align:center;cursor:pointer}
+  .opt.selected{background:#2b7cff;color:white;border-color:#2b7cff}
+  button{padding:12px;border-radius:10px;border:0;background:#2b7cff;color:white;font-weight:700;width:100%}
+  .small{font-size:13px;color:#666;margin-top:8px}
+  footer{font-size:13px;color:#777;text-align:center;margin-top:18px}
+  @media (max-width:420px){ .row{flex-direction:column} }
 </style>
 </head>
 <body>
-  <div class="container">
-    <h1>주간테스트 OMR</h1>
+<div class="wrap">
+  <header><h1>주간테스트 OMR 제출</h1></header>
 
-    <!-- Controls: 학년 / 시험지 / 학생ID -->
-    <div class="controls">
-      <div class="control-item">
-        <label for="grade">학년</label>
-        <select id="grade">
-          <option>중1</option><option>중2</option><option>중3</option>
-          <option>고1</option><option>고2</option><option>고3</option>
-        </select>
-      </div>
+  <div class="card">
+    <label>학년</label>
+    <input type="text" id="grade" placeholder="예: 중1" />
 
-      <div class="control-item">
-        <label for="exam">시험지</label>
-        <select id="exam">
-          <option value="A">A형</option><option value="B">B형</option><option value="C">C형</option>
-        </select>
-      </div>
+    <label style="margin-top:10px">시험지 종류</label>
+    <input type="text" id="paper" placeholder="예: A형" />
 
-      <div class="control-item">
-        <label for="studentId">학생 ID</label>
-        <input id="studentId" type="text" placeholder="예: 2025001" />
-      </div>
+    <label style="margin-top:10px">유형명 (시험명)</label>
+    <input type="text" id="typeName" placeholder="예: 2025-10-11 주간1" />
+
+    <label style="margin-top:10px">학생 이름</label>
+    <input type="text" id="studentName" placeholder="예: 홍길동" />
+
+    <label style="margin-top:10px">학생 ID (선택)</label>
+    <input type="text" id="studentID" placeholder="학번 등(선택)" />
+
+    <label style="margin-top:10px">문제 수</label>
+    <input type="text" id="qcount" placeholder="예: 20" />
+    <div class="small">문제 수 입력 후 "문항 생성" 버튼을 눌러 주세요.</div>
+
+    <div style="margin-top:10px;">
+      <button id="gen">문항 생성</button>
     </div>
-
-    <!-- OMR form -->
-    <div id="omrForm" aria-live="polite"></div>
-
-    <!-- actions -->
-    <div class="actions">
-      <button id="gradeBtn">채점</button>
-      <button id="reloadAnswers" class="secondary">정답 다시 불러오기</button>
-    </div>
-
-    <div id="result"></div>
-    <div id="answerStatus" class="status"></div>
-
-    <h3 style="margin-top:18px">디버그 로그 (개발용)</h3>
-    <pre id="debugLog" class="debug">콘솔 로그가 여기에 출력됩니다.</pre>
   </div>
 
+  <div id="questionsContainer" class="card" style="display:none"></div>
+
+  <div id="submitArea" style="display:none">
+    <div class="card">
+      <div class="small">정답 선택 후 아래 버튼을 누르면 새로운 창으로 채점 결과가 열립니다.</div>
+      <div style="margin-top:10px">
+        <button id="submitBtn">제출 & 채점</button>
+      </div>
+      <div style="margin-top:8px" class="small">참고: 제출하면 Submissions 시트에 기록됩니다.</div>
+    </div>
+  </div>
+
+  <footer>곽인영T OMR 시스템</footer>
+</div>
+
 <script>
-/* ===== 설정 ===== */
-const TOTAL_QUESTIONS = 15;
-const WEBAPP_URL = '<https://script.google.com/macros/s/AKfycbw3WieZURxBBggTHHBc6m09pqHuvhehuqhJ4c8YPUYVfsb4wMAAxxaCwPtsJkQvdEf_/exec>'; // ← 여기에 Apps Script 웹앱 URL 넣으세요 (끝에 /exec 포함)
+/* === IMPORTANT ===
+  아래 SCRIPT_URL 을 Apps Script를 배포하고 얻은 웹앱 URL로 바꿔주세요.
+  예: https://script.google.com/macros/s/AKfycbx.../exec
+*/
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxsrXyJUnEKUfxVuAbGgoRPoN9w2Drb7PCSYye-pMZuMM71iQKVjQZTQc5eno1-7Rl/exec";
 
-/* ===== 유틸 ===== */
-function log(msg){
-  console.log(msg);
-  const el = document.getElementById('debugLog');
-  if(!el) return;
-  el.textContent = (el.textContent ? el.textContent + '\n' : '') + msg;
-  if(el.textContent.length > 20000) el.textContent = el.textContent.slice(-20000);
-}
-function setStatus(msg, type=''){ const el=document.getElementById('answerStatus'); if(el){ el.textContent=msg; el.className='status'+(type? ' '+type:''); } log('[STATUS] '+msg); }
-function $(id){ return document.getElementById(id) || null; }
+function $(id){return document.getElementById(id)}
 
-/* ===== 폼 생성 ===== */
-function buildForm(){
-  const omrForm = $('omrForm');
-  if(!omrForm){ log('buildForm: omrForm not found'); return; }
-  omrForm.innerHTML = '';
-  for(let i=1;i<=TOTAL_QUESTIONS;i++){
-    const q = document.createElement('div'); q.className='question';
-    q.innerHTML = `<div class="qnum">${i}</div><div class="options" data-q="${i}"></div>`;
-    const options = q.querySelector('.options');
-    for(let j=1;j<=5;j++){
-      const lbl = document.createElement('label'); lbl.className='option';
-      lbl.innerHTML = `<input type="radio" name="q${i}" value="${j}">${j}`;
-      lbl.querySelector('input').addEventListener('change', function(){
-        options.querySelectorAll('.option').forEach(o=>o.classList.remove('checked'));
-        lbl.classList.add('checked');
-      });
-      options.appendChild(lbl);
-    }
-    omrForm.appendChild(q);
-  }
-}
+$('gen').addEventListener('click', () => {
+  const cnt = parseInt($('qcount').value);
+  if (!cnt || cnt <= 0 || cnt > 200) { alert("문제 수를 1~200 범위로 입력하세요."); return; }
+  renderQuestions(cnt);
+});
 
-/* ===== 정답 불러오기 (fetch -> JSONP 폴백) ===== */
-let correctAnswers = {};
-let lastFetch = {grade:'', exam:''};
-
-async function fetchAnswers(){
-  const gradeEl = $('grade'), examEl = $('exam');
-  if(!gradeEl || !examEl){ setStatus('학년/시험지 선택 UI를 찾을 수 없음','fail'); log('fetchAnswers: missing UI'); return; }
-  const grade = gradeEl.value, exam = examEl.value;
-  const url = `${WEBAPP_URL}?grade=${encodeURIComponent(grade)}&exam=${encodeURIComponent(exam)}`;
-  log('fetchAnswers -> ' + url);
-
-  if(lastFetch.grade===grade && lastFetch.exam===exam && Object.keys(correctAnswers).length){
-    setStatus('정답: 캐시 사용됨','success'); return;
-  }
-
-  setStatus('정답 불러오는 중...','');
-  try {
-    const res = await fetch(url);
-    log('fetch status: ' + res.status + ' ' + res.statusText);
-    const text = await res.text();
-    log('fetch raw: ' + text);
-    let data;
-    try { data = JSON.parse(text); } catch(e){ throw new Error('서버 응답 JSON 파싱 실패'); }
-    if(data && data.error) throw new Error('서버 오류: ' + data.error);
-    correctAnswers = data || {};
-    lastFetch = {grade, exam};
-    setStatus('정답 불러오기 성공 (fetch)','success');
-    return;
-  } catch(err){
-    log('fetch failed: ' + err);
-    setStatus('fetch 실패 — JSONP 폴백 시도','fail');
-    return new Promise((resolve, reject) => {
-      const cbName = 'jsonp_cb_' + Date.now();
-      window[cbName] = function(data){
-        delete window[cbName];
-        script.remove();
-        log('JSONP cb data: ' + JSON.stringify(data));
-        if(data && data.error){ setStatus('정답 불러오기 실패 — 서버 오류','fail'); reject(data); }
-        else { correctAnswers = data || {}; lastFetch = {grade, exam}; setStatus('정답 불러오기 성공 (jsonp)','success'); resolve(data); }
-      };
-      const script = document.createElement('script');
-      script.src = `${url}&callback=${cbName}`;
-      script.onerror = function(e){ delete window[cbName]; script.remove(); log('JSONP load error'); setStatus('정답 불러오기 실패 — JSONP 로드 실패','fail'); reject(e); };
-      document.head.appendChild(script);
+function renderQuestions(n) {
+  const cont = $('questionsContainer');
+  cont.innerHTML = "";
+  for (let i=1;i<=n;i++) {
+    const q = document.createElement('div');
+    q.className = 'question';
+    q.innerHTML = "<div><strong>문제 " + i + "</strong></div>";
+    const opts = document.createElement('div');
+    opts.className = 'opts';
+    const choices = ['A','B','C','D','E'];
+    choices.forEach(c=>{
+      const d = document.createElement('div');
+      d.className = 'opt';
+      d.textContent = c;
+      d.dataset.q = i;
+      d.dataset.choice = c;
+      d.addEventListener('click', optClick);
+      opts.appendChild(d);
     });
+    q.appendChild(opts);
+    cont.appendChild(q);
   }
+  cont.style.display = 'block';
+  $('submitArea').style.display = 'block';
+  window.scrollTo(0,document.body.scrollHeight);
 }
 
-/* ===== 채점 및 기록 ===== */
-async function submitAndGrade(){
-  const gradeEl = $('grade'), examEl = $('exam'), studentEl = $('studentId');
-  if(!gradeEl || !examEl || !studentEl){ alert('학년/시험지/학생ID 입력란을 확인하세요'); return; }
-  const grade = gradeEl.value, exam = examEl.value, studentId = studentEl.value.trim();
-  if(!studentId){ alert('학생 ID를 입력해주세요'); return; }
-
-  // 최신 정답 불러오기(실패해도 채점은 진행)
-  await fetchAnswers();
-
-  let score = 0, details = '';
-  for(let i=1;i<=TOTAL_QUESTIONS;i++){
-    const sel = document.querySelector(`input[name="q${i}"]:checked`);
-    const val = sel ? sel.value : '-';
-    const key = 'q' + i;
-    if(correctAnswers[key] && String(correctAnswers[key]) === String(val)) score++;
-    details += `Q${i}:${val} `;
-  }
-
-  $('result').innerText = `${studentId} 님 점수: ${score} / ${TOTAL_QUESTIONS}`;
-  log(`채점 -> studentId=${studentId} grade=${grade} exam=${exam} score=${score}`);
-
-  // 서버 기록 (POST, 헤더 없이)
-  const payload = { grade, exam, studentId, score, time: new Date().toLocaleString(), details };
-  try {
-    const res = await fetch(WEBAPP_URL, { method: 'POST', body: JSON.stringify(payload) });
-    const text = await res.text();
-    log('POST status: ' + res.status + ' raw: ' + text);
-    try {
-      const data = JSON.parse(text);
-      if(data && data.status === 'success') setStatus('점수 표시 및 기록 전송 완료','success');
-      else setStatus('기록전송 후 서버 응답 비정상 (콘솔 확인)','fail');
-    } catch(e){
-      log('POST 응답 JSON 파싱 실패: ' + e);
-      setStatus('기록 전송(응답 파싱 실패)','fail');
-    }
-  } catch(e){
-    log('POST 실패: ' + e);
-    setStatus('구글 시트 기록 실패 — 네트워크/웹앱 설정 확인','fail');
-  }
+function optClick(e){
+  const parent = e.currentTarget.parentElement;
+  // 같은 문항 내에서 선택 토글
+  Array.from(parent.children).forEach(el => el.classList.remove('selected'));
+  e.currentTarget.classList.add('selected');
 }
 
-/* ===== 초기화 ===== */
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    buildForm();
-    const gBtn = $('gradeBtn'), rBtn = $('reloadAnswers');
-    if(gBtn) gBtn.addEventListener('click', submitAndGrade);
-    if(rBtn) rBtn.addEventListener('click', () => { lastFetch = {grade:'', exam:''}; fetchAnswers(); });
-    // 초기 정답 불러오기 시도 (UI는 준비된 상태)
-    fetchAnswers().catch(e => log('Initial fetchAnswers error: ' + e));
-    log('Initialization complete.');
-  } catch(err){
-    log('Init error: ' + err);
-    setStatus('초기화 중 오류 발생(콘솔 확인)','fail');
+$('submitBtn').addEventListener('click', () => {
+  const grade = encodeURIComponent($('grade').value.trim());
+  const paper = encodeURIComponent($('paper').value.trim());
+  const typeName = encodeURIComponent($('typeName').value.trim());
+  const studentName = encodeURIComponent($('studentName').value.trim());
+  const studentID = encodeURIComponent($('studentID').value.trim());
+  if (!grade || !paper || !typeName || !studentName) { alert("학년, 시험지 종류, 유형명, 학생 이름은 반드시 입력하세요."); return; }
+
+  const qs = document.querySelectorAll('.question');
+  if (qs.length === 0) { alert("문항을 생성하세요."); return; }
+
+  const answers = [];
+  for (let i=0;i<qs.length;i++) {
+    const sel = qs[i].querySelector('.opt.selected');
+    answers.push(sel ? sel.dataset.choice : "");
   }
+  const answersStr = encodeURIComponent(answers.join(','));
+
+  // view=html 로 하면 Apps Script가 보기좋은 HTML page로 결과를 보여줌 (새창으로 열기)
+  const url = SCRIPT_URL + '?grade=' + grade + '&paper=' + paper + '&type=' + typeName
+            + '&studentName=' + studentName + '&studentID=' + studentID
+            + '&answers=' + answersStr + '&view=html';
+
+  // 새 창에서 결과를 표시 (팝업 차단 시 새 탭)
+  window.open(url, '_blank');
 });
 </script>
 </body>
 </html>
-
